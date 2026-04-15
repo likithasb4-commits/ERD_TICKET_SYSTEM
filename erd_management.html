@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ERD Routing Management System</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    :root {
+      --bg:#f0f2f5; --surface:#fff; --surface2:#f7f8fa;
+      --border:#d0d5dd; --border-focus:#5b8dee;
+      --text:#1d2939; --text-muted:#667085;
+      --accent:#3b6fd4; --accent-hover:#2d5ab8; --accent-light:#e8effe;
+      --ok:#027a48; --ok-bg:#ecfdf3;
+      --blocked-bg:#fff1f3; --blocked:#c01048;
+      --header-bg:#1e2d4f; --header-text:#fff;
+      --th-bg:#e8effe; --th-text:#1e3a6e;
+      --input-bg:#fff; --disabled-bg:#f2f4f7; --disabled-text:#b0b8c4;
+      --shadow:0 1px 3px rgba(0,0,0,0.08);
+      --wip-bg:#fffbeb; --wip-border:#fbbf24;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;}
+
+    .top-bar{background:var(--header-bg);color:var(--header-text);padding:0 24px;display:flex;align-items:center;gap:14px;height:46px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.18);}
+    .top-bar .brand{font-weight:600;font-size:14px;letter-spacing:.04em;}
+    .top-bar .sep{color:rgba(255,255,255,.3);}
+    .top-bar .proj-info{color:rgba(255,255,255,.7);font-size:12px;}
+
+    /* ── Ticket-loaded banner ── */
+    .ticket-banner{
+      background:#1e3a6e;color:#fff;padding:9px 24px;
+      display:flex;align-items:center;gap:14px;font-size:12px;
+      border-bottom:2px solid #5b8dee;
+    }
+    .ticket-banner .tb-label{font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#a3c0ff;}
+    .ticket-banner .tb-val{font-weight:600;color:#fff;}
+    .ticket-banner .tb-sep{color:rgba(255,255,255,.3);}
+    .ticket-banner .tb-badge{
+      background:#5b8dee;color:#fff;border-radius:12px;
+      padding:2px 10px;font-size:10px;font-weight:700;letter-spacing:.04em;
+    }
+
+    .main{padding:18px 24px;}
+
+    .tab-row{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;}
+    .tab{padding:8px 20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s;}
+    .tab:hover{color:var(--accent);}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+
+    .box{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow);}
+    .box.wip{border-color:var(--wip-border);background:var(--wip-bg);}
+
+    /* ── Auto-fill highlight ── */
+    .box.autofilled{border-color:#5b8dee;box-shadow:0 0 0 3px rgba(91,141,238,.12);}
+
+    .section-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+    .form-grid{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;align-items:flex-end;}
+    .field{display:flex;flex-direction:column;gap:4px;}
+    .field label{font-size:11px;font-weight:500;color:var(--text-muted);}
+
+    input,select{background:var(--input-bg);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;min-width:140px;}
+    input:focus,select:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(91,141,238,.12);}
+    input:disabled,select:disabled{background:var(--disabled-bg);color:var(--disabled-text);cursor:not-allowed;border-color:#e4e7ec;}
+    input[type="file"]{padding:4px 6px;font-size:11px;width:150px;min-width:unset;}
+    input[type="number"]{min-width:80px;}
+
+    /* ── Autofilled input highlight ── */
+    input.af-highlight,select.af-highlight{
+      border-color:#5b8dee;background:#eef4ff;
+    }
+
+    button{background:var(--accent);color:#fff;border:none;border-radius:4px;padding:7px 16px;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;}
+    button:hover{background:var(--accent-hover);}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+    button.ghost:hover{background:var(--accent-light);}
+    button.danger{background:#c01048;color:#fff;}
+    button.danger:hover{background:#a00d3c;}
+    button.success{background:#027a48;color:#fff;}
+    button.success:hover{background:#015c36;}
+    button.plus-btn{background:var(--surface2);color:var(--accent);border:1px dashed var(--accent);font-size:12px;padding:4px 10px;margin-top:5px;display:block;width:100%;}
+    button.plus-btn:hover{background:var(--accent-light);}
+
+    table{border-collapse:collapse;width:100%;font-size:12px;}
+    th{background:var(--th-bg);color:var(--th-text);padding:8px;border:1px solid #c7d6f5;font-size:11px;font-weight:600;white-space:nowrap;}
+    td{border:1px solid var(--border);padding:6px 7px;text-align:center;vertical-align:middle;background:var(--surface);}
+    td.sub-label{font-size:12px;font-weight:600;text-align:left;background:var(--surface2);color:var(--text);white-space:nowrap;padding-left:10px;}
+
+    .project-meta{background:var(--accent-light);border:1px solid #c7d6f5;border-radius:5px;padding:8px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:18px;font-size:11px;color:var(--text-muted);}
+    .project-meta span b{color:var(--text);font-weight:600;}
+
+    .phase-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+    .phase-badge{font-size:16px;font-weight:700;background:var(--accent);color:#fff;width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+    .phase-badge.wip-badge{background:var(--wip-border);color:#1d2939;}
+
+    .status-ok{display:inline-flex;align-items:center;gap:6px;background:var(--ok-bg);color:var(--ok);border:1px solid #abefc6;border-radius:4px;padding:5px 12px;font-size:12px;font-weight:600;margin-top:10px;}
+    .status-blocked{display:inline-flex;align-items:center;gap:6px;background:var(--blocked-bg);color:var(--blocked);border:1px solid #fda29b;border-radius:4px;padding:5px 12px;font-size:12px;font-weight:600;margin-top:10px;}
+
+    .archive-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+    .archive-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+    .archive-tag{display:inline-block;background:var(--ok-bg);color:var(--ok);border:1px solid #abefc6;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600;}
+    .wip-tag{background:var(--wip-bg);color:#b45309;border-color:var(--wip-border);}
+
+    .frozen-note{font-size:10px;color:#888;font-style:italic;}
+    .history-table th{font-size:10px;}
+    .history-table td{font-size:11px;}
+    .setup-msg-ok{color:var(--ok);font-size:12px;font-weight:500;margin-top:8px;}
+    .setup-msg-err{color:var(--blocked);font-size:12px;font-weight:500;margin-top:8px;}
+    #partTable{margin-top:14px;}
+    #partTable input{min-width:110px;width:100%;border-radius:0;}
+    #partTable td{padding:4px 6px;}
+    .divider{height:1px;background:var(--border);margin:14px 0;}
+
+    .history-filter{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+    .history-filter select{min-width:100px;}
+
+    /* ── BOM Soft Copy drag-drop zone ── */
+    .drop-zone{
+      border:2px dashed var(--border);border-radius:5px;
+      padding:8px 6px;text-align:center;font-size:10px;color:var(--text-muted);
+      cursor:pointer;transition:border-color .2s,background .2s;
+      min-width:130px;background:var(--surface2);
+      position:relative;user-select:none;
+    }
+    .drop-zone.dragover{border-color:var(--accent);background:var(--accent-light);}
+    .drop-zone.has-file{border-color:var(--ok);background:var(--ok-bg);color:var(--ok);}
+    .drop-zone input[type="file"]{
+      position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+    }
+    .drop-zone .dz-label{pointer-events:none;font-size:10px;line-height:1.4;}
+    .drop-zone .dz-filename{font-weight:600;font-size:10px;word-break:break-all;pointer-events:none;}
+
+    /* ── Auto-confirm banner on setup tab ── */
+    .autoload-banner{
+      background:#e8effe;border:1px solid #5b8dee;border-radius:5px;
+      padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;
+    }
+    .autoload-banner .ab-icon{font-size:18px;}
+    .autoload-banner .ab-text{font-size:12px;color:#1e3a6e;line-height:1.5;}
+    .autoload-banner .ab-text b{font-weight:600;}
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span class="brand">ERD ROUTING MANAGEMENT SYSTEM</span>
+  <span class="sep">|</span>
+  <span class="proj-info" id="topProjDisplay">No Project Active</span>
+</div>
+
+<!-- Ticket banner — shown only when loaded from subsystem portal -->
+<div class="ticket-banner" id="ticketBanner" style="display:none;"></div>
+
+<div class="main">
+  <div class="tab-row">
+    <div class="tab active" onclick="switchTab('setup')">Project Setup</div>
+    <div class="tab" onclick="switchTab('phases')">Phases</div>
+    <div class="tab" onclick="switchTab('history')">History Log</div>
+    <div class="tab" onclick="switchTab('archive')">Archive</div>
+  </div>
+
+  <!-- PROJECT SETUP TAB -->
+  <div id="tab-setup" class="tab-content active">
+    <div class="box" id="setupBox">
+      <div class="section-title">Project Setup</div>
+
+      <!-- Auto-load notice — injected by JS when params are present -->
+      <div id="autoloadBanner" style="display:none;" class="autoload-banner">
+        <span class="ab-icon">🔗</span>
+        <div class="ab-text">
+          <b>Ticket data auto-loaded from Subsystem Portal.</b>
+          All fields have been pre-filled from the submitted ticket.
+          Review the details below, then click <b>Save &amp; Confirm Setup</b> to proceed to Phases.
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field"><label>Ticket Request No. *</label><input id="ticketNumber" placeholder="e.g. TKT-00123"></div>
+        <div class="field"><label>Project Number *</label><input id="projectNumber" placeholder="Project Number"></div>
+        <div class="field"><label>Project Engineer *</label><input id="projectEngineer" placeholder="Engineer Name"></div>
+        <div class="field"><label>Master Model *</label><input id="masterModel" placeholder="Master Model Number"></div>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Type</label>
+          <select id="vehicle" onchange="handleVehicleType()"><option>On Road</option><option>Off Road</option></select>
+        </div>
+        <div class="field"><label>Platform</label><select id="platform"><option>Slingshot</option></select></div>
+        <div class="field"><label>No. of ERD Parts</label><input id="partCount" type="number" min="1" placeholder="e.g. 3" oninput="generatePartTable()"></div>
+      </div>
+      <div id="partTable"></div>
+      <div class="divider"></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button onclick="saveSetup()">Save &amp; Confirm Setup</button>
+        <button class="ghost" onclick="editSetup()" id="editSetupBtn" style="display:none;">Edit Setup</button>
+      </div>
+      <div id="setupMsg"></div>
+    </div>
+  </div>
+
+  <!-- PHASES TAB -->
+  <div id="tab-phases" class="tab-content">
+    <div class="box">
+      <div class="section-title">Create Phase</div>
+      <div class="form-grid" style="align-items:flex-end;">
+        <div class="field"><label>Phase</label>
+          <select id="phaseSelect"><option>D</option><option>V</option><option>PI</option><option>PB</option></select>
+        </div>
+        <button onclick="createPhase()">Create Phase</button>
+      </div>
+    </div>
+    <div id="workflow"></div>
+  </div>
+
+  <!-- HISTORY LOG TAB -->
+  <div id="tab-history" class="tab-content">
+    <div class="box">
+      <div class="section-title">History Log — Read Only</div>
+      <div class="history-filter">
+        <span style="font-size:12px;font-weight:500;">Filter by Phase:</span>
+        <select id="historyPhaseFilter" onchange="renderHistory()">
+          <option value="ALL">All Phases</option>
+          <option>D</option><option>V</option><option>PI</option><option>PB</option>
+        </select>
+        <button class="ghost" onclick="downloadHistoryExcel()">⬇ Download All History (Excel)</button>
+        <button class="ghost" onclick="downloadPhaseHistoryExcel()">⬇ Download Filtered Phase Excel</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="history-table">
+          <thead>
+            <tr><th>Phase</th><th>Subsystem</th><th>Engineer</th><th>Action</th><th>Detail</th><th>Date</th><th>Time</th></tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr><td colspan="7" style="color:#aaa;font-style:italic;">No history yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARCHIVE TAB -->
+  <div id="tab-archive" class="tab-content">
+    <div class="box">
+      <div class="section-title">Phases Archive</div>
+      <div id="archive"><p style="color:#aaa;font-style:italic;font-size:12px;">No completed phases yet.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+const subsystems = ["Electrical","Brakes","Cooling","HVAC","Driveline","Fuel","Clutch","Mfg"];
+const MFG_IDX = 7;
+const OFF_ROAD_PLATFORMS = ["RZR","RGR","COM","GEN","Slingshot"];
+const ON_ROAD_PLATFORMS  = ["Slingshot"];
+
+let historyLog = [];
+let setupConfirmed = false, setupLocked = false;
+let projectSetup = {}, erdParts = [];
+let archiveData = [];
+
+let bomFrozen = [], signValue = [], bomFiles = [], bomAdditions = [];
+let softCopyFiles = [];
+let phaseComplete = false, currentPhase = "";
+let activeWipIdx = -1;
+
+const globalFileStore = {};
+
+// ════════════════════════════════════════════════
+// ── AUTO-LOAD FROM URL PARAMS (from subsystem portal "More Info") ──
+// ════════════════════════════════════════════════
+window.onload = function() {
+  handleVehicleType();
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.has('ticketNo')) {
+    autoFillFromParams(params);
+  }
+};
+
+function autoFillFromParams(params) {
+  const ticketNo    = params.get('ticketNo')    || '';
+  const projNum     = params.get('projNum')     || '';
+  const projEng     = params.get('projEng')     || '';
+  const masterModel = params.get('masterModel') || '';
+  const vehicleType = params.get('vehicleType') || 'On Road';
+  const platform    = params.get('platform')    || 'Slingshot';
+  const partCount   = parseInt(params.get('partCount') || '0');
+  let   erdRows     = [];
+
+  try { erdRows = JSON.parse(params.get('erdRows') || '[]'); } catch(e) {}
+
+  // ── Fill top-bar banner ──
+  const banner = document.getElementById('ticketBanner');
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span class="tb-badge">🔗 From Subsystem Portal</span>
+    <span class="tb-sep">|</span>
+    <span class="tb-label">Ticket</span><span class="tb-val">${ticketNo}</span>
+    <span class="tb-sep">|</span>
+    <span class="tb-label">Project</span><span class="tb-val">${projNum}</span>
+    <span class="tb-sep">|</span>
+    <span class="tb-label">Engineer</span><span class="tb-val">${projEng}</span>
+    <span class="tb-sep">|</span>
+    <span class="tb-label">Master Model</span><span class="tb-val">${masterModel}</span>
+    <span class="tb-sep">|</span>
+    <span class="tb-label">Vehicle</span><span class="tb-val">${vehicleType} / ${platform}</span>
+  `;
+
+  // ── Show autoload notice ──
+  document.getElementById('autoloadBanner').style.display = 'flex';
+  document.getElementById('setupBox').classList.add('autofilled');
+
+  // ── Fill form fields ──
+  const fields = { ticketNumber: ticketNo, projectNumber: projNum, projectEngineer: projEng, masterModel: masterModel };
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; el.classList.add('af-highlight'); }
+  });
+
+  // Vehicle type
+  const vSel = document.getElementById('vehicle');
+  if (vSel) {
+    vSel.value = vehicleType;
+    handleVehicleType(); // rebuild platform options
+    vSel.classList.add('af-highlight');
+  }
+
+  // Platform — set after handleVehicleType rebuilds options
+  const pSel = document.getElementById('platform');
+  if (pSel) {
+    pSel.value = platform;
+    pSel.classList.add('af-highlight');
+  }
+
+  // Part count
+  const pcEl = document.getElementById('partCount');
+  if (pcEl) {
+    pcEl.value = partCount;
+    pcEl.classList.add('af-highlight');
+  }
+
+  // ── Build ERD part table with pre-filled values ──
+  if (partCount > 0) {
+    let html = `<table>
+      <tr>
+        <th style="width:50px;">Sl. No</th>
+        <th>ERD Name</th>
+        <th>ERD Part Number</th>
+        <th>Design Submission Date</th>
+      </tr>`;
+    for (let i = 1; i <= partCount; i++) {
+      const row = erdRows[i-1] || {};
+      html += `<tr>
+        <td style="font-weight:600;color:var(--text-muted);">${i}</td>
+        <td><input id="erdName-${i}" placeholder="ERD Name"        value="${safeVal(row.name)}" class="af-highlight"></td>
+        <td><input id="erdPart-${i}" placeholder="Part Number"     value="${safeVal(row.part)}" class="af-highlight"></td>
+        <td><input type="date" id="erdDate-${i}"                   value="${safeVal(row.date)}" class="af-highlight"></td>
+      </tr>`;
+    }
+    document.getElementById('partTable').innerHTML = html + '</table>';
+  }
+
+  // ── Update top bar display ──
+  document.getElementById('topProjDisplay').textContent =
+    `TKT: ${ticketNo}  ·  PROJ: ${projNum}  ·  ENG: ${projEng}  ·  ${vehicleType} / ${platform}`;
+}
+
+function safeVal(v) {
+  return (v || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  const map={setup:0,phases:1,history:2,archive:3};
+  document.querySelectorAll('.tab')[map[tab]].classList.add('active');
+}
+
+function handleVehicleType() {
+  const v = document.getElementById("vehicle").value;
+  const p = document.getElementById("platform");
+  p.innerHTML="";
+  (v==="On Road"?ON_ROAD_PLATFORMS:OFF_ROAD_PLATFORMS).forEach(o=>{
+    const opt=document.createElement("option"); opt.value=o; opt.text=o; p.appendChild(opt);
+  });
+}
+
+function generatePartTable() {
+  const raw = document.getElementById("partCount").value;
+  const count = parseInt(raw);
+  const container = document.getElementById("partTable");
+  if (!raw||isNaN(count)||count<1){container.innerHTML="";return;}
+  const saved=[];
+  for(let i=1;i<=200;i++){
+    const n=document.getElementById(`erdName-${i}`); if(!n) break;
+    saved.push({name:n.value, part:document.getElementById(`erdPart-${i}`)?.value||"", date:document.getElementById(`erdDate-${i}`)?.value||""});
+  }
+  let html=`<table><tr><th style="width:50px;">Sl. No</th><th>ERD Name</th><th>ERD Part Number</th><th>Design Submission Date</th></tr>`;
+  for(let i=1;i<=count;i++){
+    const p=saved[i-1]||{};
+    html+=`<tr><td style="font-weight:600;color:var(--text-muted);">${i}</td>
+      <td><input id="erdName-${i}" placeholder="ERD Name" value="${p.name||''}"></td>
+      <td><input id="erdPart-${i}" placeholder="Part Number" value="${p.part||''}"></td>
+      <td><input type="date" id="erdDate-${i}" value="${p.date||''}"></td></tr>`;
+  }
+  container.innerHTML=html+"</table>";
+}
+
+function saveSetup() {
+  const ticket  = document.getElementById("ticketNumber").value.trim();
+  const projNum = document.getElementById("projectNumber").value.trim();
+  const projEng = document.getElementById("projectEngineer").value.trim();
+  const master  = document.getElementById("masterModel").value.trim();
+  const vehicle = document.getElementById("vehicle").value;
+  const platform= document.getElementById("platform").value;
+  const count   = parseInt(document.getElementById("partCount").value)||0;
+  const msgEl   = document.getElementById("setupMsg");
+
+  if(!ticket||!projNum||!projEng||!master){
+    msgEl.className="setup-msg-err";
+    msgEl.textContent="⚠ Please fill all required fields (Ticket, Project Number, Engineer, Master Model).";
+    return;
+  }
+  erdParts=[];
+  for(let i=1;i<=count;i++){
+    erdParts.push({sl:i,
+      name:document.getElementById(`erdName-${i}`)?.value.trim()||"",
+      part:document.getElementById(`erdPart-${i}`)?.value.trim()||"",
+      date:document.getElementById(`erdDate-${i}`)?.value||""});
+  }
+  projectSetup={ticket,projNum,projEng,master,vehicle,platform,count,erdParts};
+  setupConfirmed=true; setupLocked=true;
+  ["ticketNumber","projectNumber","projectEngineer","masterModel","vehicle","platform","partCount"]
+    .forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=true;});
+  for(let i=1;i<=count;i++){
+    ["erdName-","erdPart-","erdDate-"].forEach(pfx=>{const e=document.getElementById(pfx+i);if(e)e.disabled=true;});
+  }
+  document.getElementById("editSetupBtn").style.display="inline-block";
+  msgEl.className="setup-msg-ok";
+  msgEl.textContent="✔ Setup saved and confirmed. Switch to the Phases tab to begin.";
+  document.getElementById("topProjDisplay").textContent=
+    `TKT: ${ticket}  ·  PROJ: ${projNum}  ·  ENG: ${projEng}  ·  ${vehicle} / ${platform}`;
+  // Hide autoload banner after save
+  document.getElementById('autoloadBanner').style.display='none';
+  document.getElementById('setupBox').classList.remove('autofilled');
+  logHistory("—","—","—","Project Setup Saved",
+    `TKT:${ticket} | PROJ:${projNum} | ENG:${projEng} | ${vehicle}/${platform} | ERD Parts:${count}`);
+}
+
+function editSetup() {
+  if(!confirm("Unlock setup fields for editing?")) return;
+  setupLocked=false; setupConfirmed=false;
+  const count=projectSetup.count||0;
+  ["ticketNumber","projectNumber","projectEngineer","masterModel","vehicle","platform","partCount"]
+    .forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=false;});
+  for(let i=1;i<=count;i++){
+    ["erdName-","erdPart-","erdDate-"].forEach(pfx=>{const e=document.getElementById(pfx+i);if(e)e.disabled=false;});
+  }
+  document.getElementById("editSetupBtn").style.display="none";
+  document.getElementById("setupMsg").textContent="";
+}
+
+function createPhase() {
+  if(!setupConfirmed){alert("Please complete and save Project Setup first.");switchTab('setup');return;}
+  const phase = document.getElementById("phaseSelect").value;
+
+  if(document.getElementById(`phaseBox-${phase}`)){
+    alert(`Phase ${phase} is already open and being worked on. Scroll down to see it.`);
+    return;
+  }
+  const existingWip = archiveData.find(a=>a.phase===phase && a.status==="wip");
+  if(existingWip){
+    alert(`Phase ${phase} is currently in WIP (being worked on). Scroll down to see it.`);
+    return;
+  }
+  const existingArchived = archiveData.find(a=>a.phase===phase && a.status==="archived");
+  if(existingArchived){
+    const go = confirm(`Phase ${phase} is already completed and archived.\n\nClick OK to go to the Archive tab, or Cancel to stay here.`);
+    if(go) switchTab('archive');
+    return;
+  }
+
+  activeWipIdx = -1;
+  initPhaseWorkflow(phase, false, null);
+}
+
+function initPhaseWorkflow(phase, isRestore, previousData) {
+  currentPhase = phase;
+  phaseComplete = false;
+  bomFrozen    = subsystems.map(()=>false);
+  signValue    = subsystems.map(()=>"");
+  bomFiles     = subsystems.map(()=>"");
+  bomAdditions = subsystems.map(()=>[]);
+  softCopyFiles= subsystems.map(()=>null);
+  bomVersions  = subsystems.map(()=>[]);
+  softVersions = subsystems.map(()=>[]);
+  commonERDFiles = [];
+
+  const {ticket,projNum,projEng,master,vehicle,platform} = projectSetup;
+  const restoreNote = isRestore
+    ? `<div style="background:#fffbeb;border:1px solid #fbbf24;border-radius:4px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#b45309;">
+        <b>⚡ WIP Mode</b> — Previously archived data is preserved below. Add new entries using the + buttons. Original data cannot be edited.
+       </div>` : "";
+
+  const workflowDiv = document.getElementById("workflow");
+  const newBox = document.createElement("div");
+  newBox.className = isRestore ? "box wip" : "box";
+  newBox.id = `phaseBox-${phase}`;
+
+  const rowsHTML = subsystems.map((s,i) => {
+    const na = '<span style="font-size:10px;color:var(--text-muted);font-style:italic;">N/A</span>';
+    const engCell = '<td><input id="eng-'+i+'" placeholder="'+(i===MFG_IDX?'MFG Engineer':'Engineer')+'"'
+      +(i===MFG_IDX ? '' : ' oninput="enableRow('+i+')"')+'></td>';
+    const bomCell = '<td id="bomCell-'+i+'" style="vertical-align:top;padding:7px;min-width:170px;">'
+      +(i===MFG_IDX ? na
+        : '<div id="bomList-'+i+'" style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px;"></div>'
+         +'<input type="file" id="bom-'+i+'" disabled onchange="handleBomUpload('+i+')" style="width:150px;">'
+         +'<div id="bomHint-'+i+'" style="font-size:9px;color:var(--text-muted);margin-top:2px;"></div>')
+      +'</td>';
+    const softCell = '<td id="softCopyCell-'+i+'" style="vertical-align:top;padding:7px;min-width:160px;">'
+      +(i===MFG_IDX ? na
+        : '<div id="softCopyList-'+i+'" style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px;"></div>'
+         +'<div class="drop-zone" id="dz-'+i+'" ondragover="dzDragOver(event,'+i+')" ondragleave="dzDragLeave(event,'+i+')" ondrop="dzDrop(event,'+i+')">'
+         +'<input type="file" id="softCopy-'+i+'" onchange="dzFileChosen('+i+')" title="Choose file">'
+         +'<div class="dz-label" id="dz-label-'+i+'">&#8679; Drag &amp; drop<br>or click to upload</div>'
+         +'</div>'
+         +'<div id="softCopyHint-'+i+'" style="font-size:9px;color:var(--text-muted);margin-top:2px;"></div>')
+      +'</td>';
+    const signCell = '<td>'
+      +(i===MFG_IDX ? na
+        : '<select id="erd-'+i+'" disabled onchange="handleERD('+i+')">'
+         +'<option value="">--</option><option value="yes">Yes</option><option value="no">No</option>'
+         +'</select>')
+      +'</td>';
+    const reasonCell = '<td>'
+      +(i===MFG_IDX ? na : '<input id="reason-'+i+'" disabled placeholder="Reason" style="width:90px;">')
+      +'</td>';
+    const commonCell = i===0
+      ? '<td rowspan="'+subsystems.length+'" id="commonERDCell" style="vertical-align:top;padding:10px;min-width:180px;">'
+        +'<div style="font-size:11px;font-weight:500;margin-bottom:6px;color:var(--text-muted);">Common ERD</div>'
+        +'<div id="commonERDList" style="margin-bottom:6px;display:flex;flex-direction:column;gap:4px;"></div>'
+        +'<input type="file" id="commonERD" disabled onchange="handleCommonERD()" style="width:160px;">'
+        +'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;" id="commonERDHint"></div>'
+        +'</td>'
+      : '';
+    const reviewCell = '<td id="reviewCell-'+i+'">'
+      +'<select id="review-'+i+'" disabled onchange="handleReview('+i+')">'
+      +'<option value="">--</option><option value="approved">Approved</option><option value="rejected">Rejected</option>'
+      +'</select></td>';
+    const rrCell = '<td><input id="reviewReason-'+i+'" disabled placeholder="Reason" style="width:100px;"></td>';
+    const reupCell = '<td><input type="file" id="reupload-'+i+'" disabled onchange="reuploadMail('+i+')"></td>';
+    return '<tr id="row-'+i+'"><td class="sub-label">'+s+'</td>'
+      +engCell+bomCell+softCell+signCell+reasonCell+commonCell+reviewCell+rrCell+reupCell+'</tr>';
+  }).join("");
+
+  newBox.innerHTML = `
+    <div class="phase-header" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="phase-badge ${isRestore?'wip-badge':''}">${phase}</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;">Phase ${phase}${isRestore?' <span style="font-size:11px;color:#b45309;">(WIP Restore)</span>':''}</div>
+          <div style="font-size:11px;color:var(--text-muted);">ERD Workflow</div>
+        </div>
+      </div>
+      <button class="danger" style="font-size:11px;padding:5px 12px;" onclick="deletePhase('${phase}')">&#128465; Delete Phase</button>
+    </div>
+    ${restoreNote}
+    <div class="project-meta">
+      <span><b>Ticket:</b> ${ticket}</span>
+      <span><b>Project:</b> ${projNum}</span>
+      <span><b>Engineer:</b> ${projEng}</span>
+      <span><b>Master Model:</b> ${master}</span>
+      <span><b>Vehicle:</b> ${vehicle}</span>
+      <span><b>Platform:</b> ${platform}</span>
+    </div>
+    ${isRestore && previousData ? renderArchivedSnapshot(phase, previousData) : ""}
+    <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin:${isRestore?'14px':'0'} 0 8px;letter-spacing:.04em;text-transform:uppercase;">
+      ${isRestore ? '+ New Additions' : 'Workflow'}
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="workflowTable-${phase}">
+        <tr>
+          <th>Subsystem</th><th>Engineer</th><th>CAD BOM</th>
+          <th>BOM Soft Copy</th><th>Sign of to Create ERD</th><th>Reason</th>
+          <th>Upload ERD (Common)</th><th>Review</th><th>Reason</th><th>Comments</th>
+        </tr>
+        ${rowsHTML}
+      </table>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="ghost" onclick="savePhase('${phase}',${isRestore})">💾 Save</button>
+      <button onclick="submitPhase('${phase}',${isRestore})">✔ Submit</button>
+      <span id="status"></span>
+    </div>`;
+
+  workflowDiv.appendChild(newBox);
+  logHistory(phase,"—","—", isRestore?"Phase Restored to WIP":"Phase Created", `Phase ${phase} ${isRestore?'restored':'initiated'}`);
+}
+
+function dlBtn(key, name) {
+  const safeName = (name||'').replace(/'/g,"\\'");
+  const safeKey  = (key||'').replace(/'/g,"\\'");
+  if(key && globalFileStore[key]) {
+    return `<button class="ghost" style="font-size:10px;padding:2px 6px;margin:1px 0;" onclick="downloadStored('${safeKey}','${safeName}')">⬇ ${name}</button>`;
+  }
+  return `<span style="font-size:10px;">${name||'—'}</span>`;
+}
+
+function downloadStored(key, name) {
+  const file = globalFileStore[key];
+  if(!file){ alert("File not available — uploaded in a previous session."); return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function renderArchivedSnapshot(phase, data) {
+  function vList(arr) {
+    if(!arr||!arr.length) return '—';
+    return arr.map((v,vi)=>{
+      const name=typeof v==='string'?v:v.name; const key=typeof v==='string'?null:v.key;
+      return `<div><span style="font-size:10px;font-weight:600;color:var(--accent);">v${vi+1}</span> ${dlBtn(key,name)}</div>`;
+    }).join('');
+  }
+  return `
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase;">📁 Previously Archived Data (Read-Only)</div>
+      <div style="overflow-x:auto;">
+        <table style="font-size:11px;">
+          <tr><th>Subsystem</th><th>Engineer</th><th>CAD BOM Versions</th><th>Soft Copy Versions</th><th>ERD Sign</th><th>Review</th></tr>
+          ${data.map(d=>`
+            <tr>
+              <td class="sub-label">${d.subsystem}</td>
+              <td>${d.engineer||'—'}</td>
+              <td style="text-align:left;">${vList(d.bomVersions||(d.bom?[d.bom]:[]))}</td>
+              <td style="text-align:left;">${vList(d.softVersions||[])}</td>
+              <td>${d.erd||'—'}</td>
+              <td style="color:${d.review==='approved'?'var(--ok)':'var(--blocked)'};font-weight:600;">${d.review||'—'}</td>
+            </tr>`).join("")}
+        </table>
+      </div>
+    </div>`;
+}
+
+function enableRow(i) {
+  const eng = document.getElementById(`eng-${i}`)?.value.trim();
+  const bom = document.getElementById(`bom-${i}`);
+  if(bom) bom.disabled = !eng;
+}
+
+let bomVersions = [];
+let softVersions = [];
+
+function handleBomUpload(i) {
+  const inp = document.getElementById(`bom-${i}`);
+  const file = inp?.files[0];
+  if(!file || bomFrozen[i]) return;
+  if(!bomVersions[i]) bomVersions[i] = [];
+  bomVersions[i].push(file);
+  bomFiles[i] = file.name;
+  const vNum = bomVersions[i].length;
+  globalFileStore[`bom-${currentPhase}-${i}-v${vNum}`] = file;
+
+  const listDiv = document.getElementById(`bomList-${i}`);
+  if(listDiv){
+    listDiv.querySelectorAll('.bom-latest-badge').forEach(b=>{
+      b.textContent="prev"; b.style.color="var(--text-muted)"; b.style.fontWeight="normal";
+      b.classList.remove('bom-latest-badge');
+    });
+    const entry = document.createElement("div");
+    entry.style.cssText="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;";
+    entry.innerHTML=`
+      <span style="font-size:10px;font-weight:600;color:var(--accent);min-width:20px;">v${vNum}</span>
+      <span style="font-size:10px;color:var(--text);word-break:break-all;flex:1;">${file.name}</span>
+      <button class="ghost" style="font-size:10px;padding:2px 6px;" onclick="downloadBomVersion(${i},${vNum-1})">⬇</button>
+      <span class="bom-latest-badge" style="font-size:9px;color:var(--ok);font-weight:600;">● Latest</span>`;
+    listDiv.appendChild(entry);
+  }
+  const hint = document.getElementById(`bomHint-${i}`);
+  if(hint) hint.textContent = `${vNum} file${vNum>1?'s':''} — decisions apply to latest (v${vNum})`;
+
+  const erdSel = document.getElementById(`erd-${i}`);
+  if(erdSel) erdSel.disabled = false;
+  if(vNum > 1 && erdSel) { erdSel.value=""; }
+  inp.value="";
+  logHistory(currentPhase, subsystems[i], getEng(i), `CAD BOM v${vNum} Uploaded`, file.name);
+}
+
+function downloadBomVersion(i, vIdx) {
+  const file = bomVersions[i]?.[vIdx];
+  if(!file){ alert("File not available."); return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href=url; a.download=file.name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function dzDragOver(e, idx) {
+  e.preventDefault();
+  document.getElementById(`dz-${idx}`)?.classList.add('dragover');
+}
+function dzDragLeave(e, idx) {
+  document.getElementById(`dz-${idx}`)?.classList.remove('dragover');
+}
+function dzDrop(e, idx) {
+  e.preventDefault();
+  document.getElementById(`dz-${idx}`)?.classList.remove('dragover');
+  const file = e.dataTransfer?.files[0];
+  if(file) storeSoftCopy(idx, file);
+}
+function dzFileChosen(idx) {
+  const file = document.getElementById(`softCopy-${idx}`)?.files[0];
+  if(file) storeSoftCopy(idx, file);
+}
+
+function storeSoftCopy(idx, file) {
+  if(bomFrozen[idx]) return;
+  if(!softVersions[idx]) softVersions[idx] = [];
+  softVersions[idx].push(file);
+  softCopyFiles[idx] = file;
+  const scVNum = softVersions[idx].length;
+  globalFileStore[`soft-${currentPhase}-${idx}-v${scVNum}`] = file;
+  const vNum = softVersions[idx].length;
+
+  const listDiv = document.getElementById(`softCopyList-${idx}`);
+  if(listDiv){
+    listDiv.querySelectorAll('.soft-latest-badge').forEach(b=>{
+      b.textContent="prev"; b.style.color="var(--text-muted)"; b.style.fontWeight="normal";
+      b.classList.remove('soft-latest-badge');
+    });
+    const entry = document.createElement("div");
+    entry.style.cssText="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;";
+    entry.innerHTML=`
+      <span style="font-size:10px;font-weight:600;color:var(--accent);min-width:20px;">v${vNum}</span>
+      <span style="font-size:10px;color:var(--text);word-break:break-all;flex:1;">${file.name}</span>
+      <button class="ghost" style="font-size:10px;padding:2px 6px;" onclick="downloadSoftVersion(${idx},${vNum-1})">⬇</button>
+      <span class="soft-latest-badge" style="font-size:9px;color:var(--ok);font-weight:600;">● Latest</span>`;
+    listDiv.appendChild(entry);
+  }
+
+  const dz = document.getElementById(`dz-${idx}`);
+  const lbl = document.getElementById(`dz-label-${idx}`);
+  if(dz) dz.classList.add('has-file');
+  if(lbl) lbl.innerHTML = `⬆ Add another soft copy`;
+
+  const hint = document.getElementById(`softCopyHint-${idx}`);
+  if(hint) hint.textContent = `${vNum} file${vNum>1?'s':''} — latest is v${vNum}`;
+
+  const inp = document.getElementById(`softCopy-${idx}`);
+  if(inp) inp.value="";
+  logHistory(currentPhase, subsystems[idx]||'—', getEng(idx), `BOM Soft Copy v${vNum} Uploaded`, file.name);
+}
+
+function downloadSoftVersion(idx, vIdx) {
+  const file = softVersions[idx]?.[vIdx];
+  if(!file){ alert("File not available."); return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href=url; a.download=file.name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function downloadSoftCopy(idx) { downloadSoftVersion(idx, (softVersions[idx]?.length||1)-1); }
+
+function deletePhase(phase) {
+  if(!confirm(`Delete Phase ${phase}? This will remove the entire phase. This cannot be undone.`)) return;
+  const box = document.getElementById(`phaseBox-${phase}`);
+  if(box) box.remove();
+  if(activeWipIdx >= 0 && archiveData[activeWipIdx]?.phase === phase){
+    archiveData[activeWipIdx].status = "archived";
+    activeWipIdx = -1;
+    renderArchive();
+  }
+  currentPhase = "";
+  bomFrozen    = subsystems.map(()=>false);
+  signValue    = subsystems.map(()=>"");
+  bomFiles     = subsystems.map(()=>"");
+  bomAdditions = subsystems.map(()=>[]);
+  softCopyFiles= subsystems.map(()=>null);
+  bomVersions  = subsystems.map(()=>[]);
+  softVersions = subsystems.map(()=>[]);
+  commonERDFiles = [];
+  logHistory(phase,"—","—","Phase Deleted",`Phase ${phase} removed by engineer`);
+}
+
+function handleERD(i) {
+  const val=document.getElementById(`erd-${i}`).value;
+  signValue[i]=val;
+  if(val==="yes"){
+    bomFrozen[i]=true;
+    const bomInp = document.getElementById(`bom-${i}`);
+    if(bomInp){ bomInp.disabled=true; bomInp.style.display='none'; }
+    const bomHint = document.getElementById(`bomHint-${i}`);
+    if(bomHint) bomHint.innerHTML = `<span class="frozen-note">🔒 Locked — download above</span>`;
+    const dz = document.getElementById(`dz-${i}`);
+    const dzInp = document.getElementById(`softCopy-${i}`);
+    if(dz){ dz.style.pointerEvents="none"; dz.style.opacity="0.5"; }
+    if(dzInp){ dzInp.disabled=true; dzInp.style.pointerEvents="none"; }
+    const softHint = document.getElementById(`softCopyHint-${i}`);
+    if(softHint) softHint.innerHTML = `<span class="frozen-note">🔒 Locked — download above</span>`;
+    document.getElementById(`reason-${i}`).disabled=true;
+    document.getElementById(`reason-${i}`).value="";
+    logHistory(currentPhase,subsystems[i],getEng(i),"Sign to Create ERD","YES — BOM & Soft Copy Locked");
+    checkERDState();
+  } else if(val==="no"){
+    bomFrozen[i]=false;
+    const bomInp = document.getElementById(`bom-${i}`);
+    if(bomInp){ bomInp.disabled=false; bomInp.style.display=''; }
+    const bomHint = document.getElementById(`bomHint-${i}`);
+    const vNum = bomVersions[i]?.length||0;
+    if(bomHint) bomHint.textContent = vNum ? `${vNum} file${vNum>1?'s':''} — decisions apply to latest (v${vNum})` : '';
+    const dz = document.getElementById(`dz-${i}`);
+    const dzInp = document.getElementById(`softCopy-${i}`);
+    if(dz){ dz.style.pointerEvents=""; dz.style.opacity=""; }
+    if(dzInp){ dzInp.disabled=false; dzInp.style.pointerEvents=""; }
+    const softHint = document.getElementById(`softCopyHint-${i}`);
+    const sNum = softVersions[i]?.length||0;
+    if(softHint) softHint.textContent = sNum ? `${sNum} file${sNum>1?'s':''} — latest is v${sNum}` : '';
+    document.getElementById(`reason-${i}`).disabled=false;
+    document.getElementById(`review-${i}`).disabled=true;
+    document.getElementById(`review-${i}`).value="";
+    logHistory(currentPhase,subsystems[i],getEng(i),"Sign to Create ERD","NO — Free re-upload");
+  }
+}
+
+function checkERDState() {
+  let atLeastOneYes=false;
+  subsystems.forEach((_,i)=>{
+    if(i===MFG_IDX) return;
+    if(document.getElementById(`erd-${i}`)?.value==="yes") atLeastOneYes=true;
+  });
+  const upload=document.getElementById("commonERD");
+  if(upload) upload.disabled=!atLeastOneYes;
+  if(atLeastOneYes) alert("📧 EMAIL: Request sent to Routing Engineer to create ERD");
+}
+
+let commonERDFiles = [];
+
+function handleCommonERD() {
+  const inp = document.getElementById("commonERD");
+  const file = inp?.files[0];
+  if(!file) return;
+  commonERDFiles.push(file);
+  const versionNum = commonERDFiles.length;
+  globalFileStore[`erd-${currentPhase}-v${versionNum}`] = file;
+  const listDiv = document.getElementById("commonERDList");
+  if(listDiv){
+    listDiv.querySelectorAll('.erd-latest-badge').forEach(b=>{
+      b.textContent="prev"; b.style.color="var(--text-muted)"; b.style.fontWeight="normal";
+      b.classList.remove('erd-latest-badge');
+    });
+    const entry = document.createElement("div");
+    entry.style.cssText = "display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 7px;margin-bottom:2px;";
+    entry.innerHTML = `
+      <span style="font-size:10px;font-weight:600;color:var(--accent);min-width:22px;">v${versionNum}</span>
+      <span style="font-size:10px;color:var(--text);word-break:break-all;flex:1;">${file.name}</span>
+      <button class="ghost" style="font-size:10px;padding:2px 7px;white-space:nowrap;"
+        onclick="downloadCommonERD(${versionNum-1})">⬇</button>
+      <span class="erd-latest-badge" style="font-size:9px;color:var(--ok);font-weight:600;">● Latest</span>`;
+    listDiv.appendChild(entry);
+  }
+  const hint = document.getElementById("commonERDHint");
+  if(hint) hint.textContent = `${versionNum} ERD${versionNum>1?'s':''} uploaded — reviews apply to latest (v${versionNum})`;
+  logHistory(currentPhase,"ALL","Routing Eng",`ERD Upload v${versionNum} (Common)`,file.name);
+  alert(`📧 EMAIL: ERD v${versionNum} uploaded — notifying ALL Subsystem Engineers`);
+  subsystems.forEach((_,i)=>{
+    const review=document.getElementById(`review-${i}`); if(!review) return;
+    if(i===MFG_IDX){review.disabled=false;return;}
+    if(document.getElementById(`erd-${i}`)?.value==="yes") review.disabled=false;
+  });
+  inp.value="";
+}
+
+function downloadCommonERD(idx) {
+  const file = commonERDFiles[idx];
+  if(!file){ alert("File not available."); return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href=url; a.download=file.name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function handleReview(i) {
+  const val=document.getElementById(`review-${i}`).value;
+  const rr=document.getElementById(`reviewReason-${i}`);
+  const ru=document.getElementById(`reupload-${i}`);
+  if(val==="rejected"){
+    rr.disabled=false; ru.disabled=false;
+    logHistory(currentPhase,subsystems[i],getEng(i),"Review","REJECTED");
+    showAddNewVersionBtns(i);
+  } else if(val==="approved"){
+    rr.disabled=true; ru.disabled=true; rr.value="";
+    logHistory(currentPhase,subsystems[i],getEng(i),"Review","APPROVED");
+    showAddNewVersionBtns(i);
+  } else {
+    rr.disabled=true; ru.disabled=true;
+  }
+}
+
+function showAddNewVersionBtns(i) {
+  const bomCell = document.getElementById(`bomCell-${i}`);
+  if(bomCell && !document.getElementById(`addBomVerBtn-${i}`)){
+    const btn = document.createElement('button');
+    btn.className='plus-btn'; btn.id=`addBomVerBtn-${i}`;
+    btn.textContent='+ New BOM Version';
+    btn.onclick = () => addNewBomVersion(i);
+    bomCell.appendChild(btn);
+  }
+  const softCell = document.getElementById(`softCopyCell-${i}`);
+  if(softCell && !document.getElementById(`addSoftVerBtn-${i}`)){
+    const btn = document.createElement('button');
+    btn.className='plus-btn'; btn.id=`addSoftVerBtn-${i}`;
+    btn.textContent='+ New Soft Copy Version';
+    btn.onclick = () => addNewSoftVersion(i);
+    softCell.appendChild(btn);
+  }
+}
+
+function addNewBomVersion(i) {
+  bomFrozen[i] = false;
+  const bomInp = document.getElementById(`bom-${i}`);
+  if(bomInp){ bomInp.style.display=''; bomInp.disabled=false; bomInp.value=''; }
+  const bomHint = document.getElementById(`bomHint-${i}`);
+  if(bomHint) bomHint.textContent = 'Upload new version — then re-sign below';
+  const erdSel = document.getElementById(`erd-${i}`);
+  if(erdSel){ erdSel.value=''; erdSel.disabled=false; }
+  const rev = document.getElementById(`review-${i}`);
+  if(rev){ rev.value=''; rev.disabled=true; }
+  const rr = document.getElementById(`reviewReason-${i}`);
+  if(rr){ rr.value=''; rr.disabled=true; }
+  document.getElementById(`addBomVerBtn-${i}`)?.remove();
+  logHistory(currentPhase,subsystems[i],getEng(i),'New BOM Version Slot Opened','Engineer adding new BOM version');
+}
+
+function addNewSoftVersion(i) {
+  bomFrozen[i] = false;
+  const dz = document.getElementById(`dz-${i}`);
+  const dzInp = document.getElementById(`softCopy-${i}`);
+  if(dz){ dz.style.pointerEvents=''; dz.style.opacity=''; }
+  if(dzInp){ dzInp.disabled=false; dzInp.style.pointerEvents=''; dzInp.value=''; }
+  const lbl = document.getElementById(`dz-label-${i}`);
+  if(lbl) lbl.innerHTML='⬆ Drag &amp; drop<br>or click to upload new version';
+  const softHint = document.getElementById(`softCopyHint-${i}`);
+  if(softHint) softHint.textContent='Upload new version';
+  document.getElementById(`addSoftVerBtn-${i}`)?.remove();
+  logHistory(currentPhase,subsystems[i],getEng(i),'New Soft Copy Version Slot Opened','Engineer adding new soft copy version');
+}
+
+function reuploadMail(i) {
+  const file=document.getElementById(`reupload-${i}`)?.files[0]; if(!file) return;
+  logHistory(currentPhase,subsystems[i],getEng(i),"Reupload",file.name);
+  alert("📧 EMAIL: Revised document uploaded — notifying ALL Subsystem + Routing Engineers");
+  const reviewVal=document.getElementById(`review-${i}`)?.value;
+  const rrVal=document.getElementById(`reviewReason-${i}`)?.value.trim();
+  if(i!==MFG_IDX&&signValue[i]==="yes"&&reviewVal==="rejected"&&rrVal){
+    setTimeout(()=>{
+      if(confirm(`Subsystem ${subsystems[i]}: Rejection cycle complete. Reset row for full re-process?`)){
+        resetSubsystemRow(i);
+        alert("📧 EMAIL: New BOM cycle started — notifying Routing Engineer");
+        logHistory(currentPhase,subsystems[i],getEng(i),"Re-Process Started","Reset after rejection cycle");
+      }
+    },200);
+  }
+}
+
+function resetSubsystemRow(i) {
+  bomFrozen[i]=false; signValue[i]=""; bomFiles[i]="";
+  softCopyFiles[i]=null;
+  bomVersions[i]=[]; softVersions[i]=[];
+  const bomCell=document.getElementById(`bomCell-${i}`);
+  if(bomCell) bomCell.innerHTML=`
+    <div id="bomList-${i}" style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px;"></div>
+    <input type="file" id="bom-${i}" onchange="handleBomUpload(${i})" style="width:150px;">
+    <div id="bomHint-${i}" style="font-size:9px;color:var(--text-muted);margin-top:2px;"></div>`;
+  const eng=document.getElementById(`eng-${i}`)?.value.trim();
+  const bom=document.getElementById(`bom-${i}`); if(bom) bom.disabled=!eng;
+  const softCell=document.getElementById(`softCopyCell-${i}`);
+  if(softCell) softCell.innerHTML=`
+    <div id="softCopyList-${i}" style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px;"></div>
+    <div class="drop-zone" id="dz-${i}"
+         ondragover="dzDragOver(event,${i})"
+         ondragleave="dzDragLeave(event,${i})"
+         ondrop="dzDrop(event,${i})">
+      <input type="file" id="softCopy-${i}" onchange="dzFileChosen(${i})" title="Choose file">
+      <div class="dz-label" id="dz-label-${i}">⬆ Drag &amp; drop<br>or click to upload</div>
+    </div>
+    <div id="softCopyHint-${i}" style="font-size:9px;color:var(--text-muted);margin-top:2px;"></div>`;
+  [`erd-${i}`,`reason-${i}`,`review-${i}`,`reviewReason-${i}`,`reupload-${i}`].forEach(id=>{
+    const el=document.getElementById(id); if(el){el.value="";el.disabled=true;}
+  });
+}
+
+function savePhase(phase, isRestore) {
+  const statusEl = document.getElementById("status");
+  statusEl.innerHTML = `<span class="status-ok">💾 Progress saved — you can continue later</span>`;
+  logHistory(phase,"—","—","Phase Saved (Draft)",`Phase ${phase} progress saved`);
+}
+
+function submitPhase(phase, isRestore) {
+  let allApproved = true;
+  if(!isRestore){
+    subsystems.forEach((_,i)=>{
+      if(document.getElementById(`review-${i}`)?.value!=="approved") allApproved=false;
+    });
+  } else {
+    allApproved = true;
+  }
+  const statusEl = document.getElementById("status");
+  if(!allApproved){
+    statusEl.innerHTML = `<span class="status-blocked">✖ Blocked — Not all subsystems approved</span>`;
+    return;
+  }
+  phaseComplete = true;
+  statusEl.innerHTML = `<span class="status-ok">✔ Submitted — Moving to Archive...</span>`;
+  const newData = subsystems.map((s,i)=>({
+    subsystem: s,
+    engineer: getEng(i),
+    bom: bomFiles[i] || "",
+    bomVersions: (bomVersions[i]||[]).map((f,vi)=>({ name:f.name, key:`bom-${phase}-${i}-v${vi+1}` })),
+    softVersions: (softVersions[i]||[]).map((f,vi)=>({ name:f.name, key:`soft-${phase}-${i}-v${vi+1}` })),
+    erd: signValue[i] || "",
+    review: document.getElementById(`review-${i}`)?.value || "",
+    reviewReason: document.getElementById(`reviewReason-${i}`)?.value || "",
+    commonERDs: commonERDFiles.map((f,vi)=>({ name:f.name, key:`erd-${phase}-v${vi+1}` }))
+  }));
+  const now = new Date();
+  const archivedAt = `${now.toLocaleDateString("en-GB")} ${now.toLocaleTimeString("en-GB")}`;
+  if(isRestore && activeWipIdx >= 0){
+    archiveData[activeWipIdx].additions = archiveData[activeWipIdx].additions || [];
+    archiveData[activeWipIdx].additions.push({ archivedAt, data: newData });
+    archiveData[activeWipIdx].status = "archived";
+    archiveData[activeWipIdx].archivedAt = archivedAt;
+  } else {
+    archiveData.push({ phase, archivedAt, status:"archived", data: newData, additions:[], commonERDs: commonERDFiles.map((f,vi)=>({ name:f.name, key:`erd-${phase}-v${vi+1}` })) });
+  }
+  activeWipIdx = -1;
+  renderArchive();
+  logHistory(phase,"ALL","—","Phase Submitted & Archived",`Phase ${phase} submitted at ${archivedAt}`);
+  setTimeout(()=>{
+    const box = document.getElementById(`phaseBox-${phase}`);
+    if(box) box.remove();
+    switchTab('archive');
+  }, 1000);
+}
+
+function showPlusButtons(phase) {
+  subsystems.forEach((_,i)=>{
+    if(i===MFG_IDX) return;
+    const cell=document.getElementById(`bomCell-${i}`); if(!cell) return;
+    const btn=document.createElement("button");
+    btn.className="plus-btn"; btn.textContent="+ Add New BOM";
+    btn.onclick=()=>addNewBomRow(i,phase);
+    cell.appendChild(btn);
+  });
+}
+
+function addNewBomRow(i,phase) {
+  const container=document.getElementById(`bomCell-${i}`);
+  const idx=bomAdditions[i].length;
+  const newId=`newBom-${i}-${idx}`;
+  const wrapper=document.createElement("div"); wrapper.style.marginTop="5px";
+  wrapper.innerHTML=`<input type="file" id="${newId}" onchange="handleNewBomUpload(${i},'${newId}','${phase}')">
+    <div id="${newId}-status" style="font-size:10px;color:var(--text-muted);"></div>`;
+  container.insertBefore(wrapper,container.querySelector(".plus-btn"));
+  bomAdditions[i].push("");
+  logHistory(phase,subsystems[i],getEng(i),"New BOM Slot Added",`Addition #${idx+1} post-phase`);
+}
+
+function handleNewBomUpload(i,inputId,phase) {
+  const file=document.getElementById(inputId)?.files[0]; if(!file) return;
+  bomAdditions[i][parseInt(inputId.split("-")[2])]=file.name;
+  document.getElementById(`${inputId}-status`).textContent=`📎 ${file.name}`;
+  logHistory(phase,subsystems[i],getEng(i),"New BOM Uploaded (Post-Phase)",file.name);
+  alert("📧 EMAIL: New BOM uploaded — notifying Routing Engineer");
+}
+
+function restoreToWip(archiveIdx) {
+  const entry = archiveData[archiveIdx];
+  if(!entry) return;
+  if(entry.status==="wip"){alert(`Phase ${entry.phase} is already in WIP.`);switchTab('phases');return;}
+  if(!setupConfirmed){alert("Project Setup must be confirmed first.");switchTab('setup');return;}
+  if(!confirm(`Restore Phase ${entry.phase} to WIP? The previous archived data will be preserved and shown as read-only. You can add new entries on top.`)) return;
+  entry.status="wip";
+  activeWipIdx=archiveIdx;
+  renderArchive();
+  currentPhase=entry.phase;
+  initPhaseWorkflow(entry.phase, true, entry.data);
+  switchTab('phases');
+  logHistory(entry.phase,"—","—","Restored to WIP",`Phase ${entry.phase} pulled back from archive for additions`);
+}
+
+function renderArchive() {
+  const container=document.getElementById("archive"); if(!container) return;
+  if(!archiveData.length){
+    container.innerHTML=`<p style="color:#aaa;font-style:italic;font-size:12px;">No completed phases yet.</p>`;
+    return;
+  }
+  container.innerHTML=archiveData.map((p,idx)=>`
+    <div class="archive-card">
+      <div class="archive-card-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="phase-badge ${p.status==='wip'?'wip-badge':''}" style="width:28px;height:28px;font-size:13px;">${p.phase}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;">Phase ${p.phase}</div>
+            <div style="font-size:11px;color:var(--text-muted);">Archived: ${p.archivedAt}</div>
+          </div>
+          <span class="archive-tag ${p.status==='wip'?'wip-tag':''}">${p.status==='wip'?'⚡ WIP':'✔ Archived'}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="ghost" onclick="downloadPhaseExcel('${p.phase}')">⬇ Excel</button>
+          ${p.status==='archived'
+            ?`<button class="ghost" onclick="restoreToWip(${idx})">↩ Restore to WIP</button>`
+            :`<span style="font-size:11px;color:#b45309;font-style:italic;align-self:center;">Currently in WIP</span>`}
+        </div>
+      </div>
+      ${renderArchiveTable(p.data, p.commonERDs||[])}
+      ${p.additions&&p.additions.length ? p.additions.map((add,ai)=>`
+        <div style="margin-top:14px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">
+            ＋ Addition #${ai+1} — Archived: ${add.archivedAt}
+          </div>
+          ${renderArchiveTable(add.data, add.commonERDs||[])}
+        </div>`).join("") : ""}
+    </div>`).join("");
+}
+
+function renderArchiveTable(data, commonERDs) {
+  function vList(arr) {
+    if(!arr||!arr.length) return '—';
+    return arr.map((v,vi)=>{
+      const name=typeof v==='string'?v:v.name; const key=typeof v==='string'?null:v.key;
+      return `<div style="margin-bottom:2px;"><span style="font-size:10px;font-weight:600;color:var(--accent);">v${vi+1}</span> ${dlBtn(key,name)}</div>`;
+    }).join('');
+  }
+  const erdList = (commonERDs||[]).length
+    ? (commonERDs||[]).map((e,ci)=>{
+        const name=typeof e==='string'?e:e.name; const key=typeof e==='string'?null:e.key;
+        const badge = ci===(commonERDs.length-1)
+          ? `<span style="font-size:9px;color:var(--ok);">● Latest</span>`
+          : `<span style="font-size:9px;color:var(--text-muted);">prev</span>`;
+        return `<div style="margin-bottom:3px;"><span style="font-size:10px;font-weight:600;color:var(--accent);">v${ci+1}</span> ${dlBtn(key,name)} ${badge}</div>`;
+      }).join('')
+    : '<span style="font-size:10px;color:var(--text-muted);">—</span>';
+  return `<div style="overflow-x:auto;">
+    <table style="font-size:11px;">
+      <tr>
+        <th>Subsystem</th><th>Engineer</th>
+        <th>CAD BOM Versions</th><th>Soft Copy Versions</th>
+        <th>ERD Sign</th><th>Review</th><th>Review Reason</th>
+        <th>Common ERD</th>
+      </tr>
+      ${data.map((d,di)=>`
+        <tr>
+          <td class="sub-label">${d.subsystem}</td>
+          <td>${d.engineer||'—'}</td>
+          <td style="text-align:left;">${vList(d.bomVersions||(d.bom?[d.bom]:[]))}</td>
+          <td style="text-align:left;">${vList(d.softVersions||[])}</td>
+          <td>${d.erd||'—'}</td>
+          <td style="color:${d.review==='approved'?'var(--ok)':'var(--blocked)'};font-weight:600;">${d.review||'—'}</td>
+          <td style="font-size:10px;">${d.reviewReason||'—'}</td>
+          ${di===0?`<td rowspan="${data.length}" style="vertical-align:top;padding:6px;">${erdList}</td>`:''}
+        </tr>`).join("")}
+    </table>
+  </div>`;
+}
+
+function logHistory(phase,subsystem,engineer,action,detail) {
+  const now=new Date();
+  historyLog.push({phase,subsystem,engineer,action,detail,
+    date:now.toLocaleDateString("en-GB"), time:now.toLocaleTimeString("en-GB")});
+  renderHistory();
+}
+
+function renderHistory() {
+  const tbody=document.getElementById("historyBody"); if(!tbody) return;
+  const filter=document.getElementById("historyPhaseFilter")?.value||"ALL";
+  const filtered = filter==="ALL" ? historyLog : historyLog.filter(h=>h.phase===filter);
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="7" style="color:#aaa;font-style:italic;">No history yet.</td></tr>`;
+    return;
+  }
+  const phaseOrder = [];
+  filtered.forEach(h=>{ if(!phaseOrder.includes(h.phase)) phaseOrder.push(h.phase); });
+  let html="";
+  phaseOrder.forEach(ph=>{
+    const entries = filtered.filter(h=>h.phase===ph);
+    html += `<tr>
+      <td colspan="7" style="background:var(--th-bg);font-weight:600;font-size:11px;color:var(--th-text);padding:6px 10px;letter-spacing:.04em;border:1px solid #c7d6f5;">
+        ▸ Phase: ${ph} &nbsp;·&nbsp; ${entries.length} event${entries.length>1?'s':''}
+      </td>
+    </tr>`;
+    entries.forEach(h=>{
+      html+=`<tr>
+        <td style="font-weight:600;color:var(--accent);">${h.phase}</td>
+        <td>${h.subsystem}</td>
+        <td>${h.engineer}</td>
+        <td><span style="background:var(--accent-light);color:var(--accent);border-radius:3px;padding:2px 7px;font-size:10px;font-weight:600;white-space:nowrap;">${h.action}</span></td>
+        <td style="text-align:left;max-width:240px;word-break:break-word;font-size:11px;">${h.detail}</td>
+        <td style="white-space:nowrap;font-size:11px;">${h.date}</td>
+        <td style="white-space:nowrap;font-size:11px;">${h.time}</td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML=html;
+}
+
+function buildCsvContent(rows, headers) {
+  const escape = v => `"${String(v||"").replace(/"/g,'""')}"`;
+  return [headers, ...rows].map(r=>r.map(escape).join(",")).join("\r\n");
+}
+
+function downloadCsv(filename, content) {
+  const blob = new Blob([content], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadHistoryExcel() {
+  const phaseOrder = [];
+  historyLog.forEach(h=>{ if(!phaseOrder.includes(h.phase)) phaseOrder.push(h.phase); });
+  const rows=[];
+  const headers=["Phase","Date","Time","Subsystem","Engineer","Action","Detail"];
+  phaseOrder.forEach(ph=>{
+    rows.push([`--- Phase: ${ph} ---`,"","","","","",""]);
+    historyLog.filter(h=>h.phase===ph).forEach(h=>{
+      rows.push([h.phase,h.date,h.time,h.subsystem,h.engineer,h.action,h.detail]);
+    });
+    rows.push(["","","","","","",""]);
+  });
+  downloadCsv("ERD_History_All.csv", buildCsvContent(rows,headers));
+}
+
+function downloadPhaseHistoryExcel(phaseArg) {
+  const filter = phaseArg || (document.getElementById("historyPhaseFilter")?.value||"ALL");
+  const filtered = filter==="ALL" ? historyLog : historyLog.filter(h=>h.phase===filter);
+  if(!filtered.length){alert("No history for this phase yet.");return;}
+  const headers=["Phase","Date","Time","Subsystem","Engineer","Action","Detail"];
+  const rows=[];
+  if(filter==="ALL"){
+    const phaseOrder=[];
+    filtered.forEach(h=>{ if(!phaseOrder.includes(h.phase)) phaseOrder.push(h.phase); });
+    phaseOrder.forEach(ph=>{
+      rows.push([`--- Phase: ${ph} ---`,"","","","","",""]);
+      filtered.filter(h=>h.phase===ph).forEach(h=>{
+        rows.push([h.phase,h.date,h.time,h.subsystem,h.engineer,h.action,h.detail]);
+      });
+      rows.push(["","","","","","",""]);
+    });
+  } else {
+    rows.push([`--- Phase: ${filter} ---`,"","","","","",""]);
+    filtered.forEach(h=>rows.push([h.phase,h.date,h.time,h.subsystem,h.engineer,h.action,h.detail]));
+  }
+  downloadCsv(`ERD_History_Phase_${filter}.csv`, buildCsvContent(rows,headers));
+}
+
+function downloadPhaseExcel(phase) {
+  const entry = archiveData.find(a=>a.phase===phase);
+  const rows=[];
+  const headers=["Type","Subsystem","Engineer","CAD BOM Versions","Soft Copy Versions","ERD Sign","Review","Review Reason","Common ERDs","Archived At"];
+  if(entry){
+    entry.data.forEach(d=>rows.push([
+      "Original", d.subsystem, d.engineer,
+      (d.bomVersions||[d.bom]).filter(Boolean).map(v=>typeof v==='string'?v:v.name).join(" | "),
+      (d.softVersions||[]).filter(Boolean).map(v=>typeof v==='string'?v:v.name).join(" | "),
+      d.erd, d.review, d.reviewReason||"",
+      (entry.commonERDs||d.commonERDs||[]).map(v=>typeof v==='string'?v:v.name).join(" | "),
+      entry.archivedAt
+    ]));
+    (entry.additions||[]).forEach((add,ai)=>{
+      add.data.forEach(d=>rows.push([
+        `Addition #${ai+1}`, d.subsystem, d.engineer,
+        (d.bomVersions||[d.bom]).filter(Boolean).map(v=>typeof v==='string'?v:v.name).join(" | "),
+        (d.softVersions||[]).filter(Boolean).map(v=>typeof v==='string'?v:v.name).join(" | "),
+        d.erd, d.review, d.reviewReason||"",
+        (add.commonERDs||d.commonERDs||[]).map(v=>typeof v==='string'?v:v.name).join(" | "),
+        add.archivedAt
+      ]));
+    });
+  }
+  const phaseHistory=historyLog.filter(h=>h.phase===phase);
+  rows.push([]); rows.push(["--- HISTORY LOG ---"]);
+  rows.push(["Phase","Subsystem","Engineer","Action","Detail","Date","Time"]);
+  phaseHistory.forEach(h=>rows.push([h.phase,h.subsystem,h.engineer,h.action,h.detail,h.date,h.time]));
+  downloadCsv(`ERD_Phase_${phase}_Full.csv`, buildCsvContent(rows,headers));
+}
+
+function getEng(i) {
+  const el=document.getElementById(`eng-${i}`);
+  return el?(el.value.trim()||`Eng-${i}`):`Eng-${i}`;
+}
+</script>
+</body>
+</html>

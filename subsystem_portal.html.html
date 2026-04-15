@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERD Routing — Subsystem Engineer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', Arial, sans-serif; background: #f4f7fb; color: #1a2236; font-size: 13px; }
+
+  /* TOPBAR */
+  .topbar { background: #1a5cc8; color: white; padding: 0 28px; height: 52px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(26,92,200,0.25); }
+  .topbar-title { font-size: 15px; font-weight: 700; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .topbar-role { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+  .topbar-link { color: rgba(255,255,255,0.88); font-size: 12px; text-decoration: none; border: 1px solid rgba(255,255,255,0.35); padding: 4px 12px; border-radius: 4px; transition: background 0.15s; }
+  .topbar-link:hover { background: rgba(255,255,255,0.15); color: white; }
+
+  /* TABS */
+  .tab-bar { background: white; border-bottom: 2px solid #dde6f5; padding: 0 28px; display: flex; }
+  .tab { padding: 12px 22px; font-size: 13px; font-weight: 500; color: #5a6a85; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s; display: flex; align-items: center; gap: 7px; }
+  .tab:hover { color: #1a5cc8; }
+  .tab.active { color: #1a5cc8; border-bottom-color: #1a5cc8; font-weight: 600; }
+  .tab .badge { background: #1a5cc8; color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+
+  /* PAGE */
+  .page { padding: 24px 28px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* TOP ACTION BAR */
+  .action-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+  .action-bar-left { font-size: 13px; color: #5a6a85; }
+  .action-bar-left b { color: #1a2236; }
+
+  /* PROJECT CARD */
+  .project-card {
+    background: white;
+    border: 1px solid #dde6f5;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .project-card:hover { box-shadow: 0 2px 12px rgba(26,92,200,0.09); }
+
+  .project-card-header {
+    background: #1a5cc8;
+    color: white;
+    padding: 11px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .project-card-header.submitted { background: #2e7d32; }
+  .project-card-header.draft     { background: #1a5cc8; }
+
+  .project-header-left { display: flex; align-items: center; gap: 12px; }
+  .project-header-title { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
+  .project-header-ticket { font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 9px; border-radius: 10px; font-weight: 600; }
+  .project-status-badge { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .badge-draft     { background: rgba(255,255,255,0.22); color: white; }
+  .badge-submitted { background: rgba(255,255,255,0.22); color: white; }
+
+  .project-header-actions { display: flex; align-items: center; gap: 7px; }
+  .hbtn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: none; font-family: 'Inter', Arial; transition: filter 0.15s;
+  }
+  .hbtn:hover { filter: brightness(0.88); }
+  .hbtn-white   { background: white; color: #1a5cc8; }
+  .hbtn-outline { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: white; }
+  .hbtn-red     { background: #fdecea; color: #c62828; }
+  .hbtn-green   { background: #e8f5e9; color: #2e7d32; }
+  .hbtn-info    { background: #fff8e1; color: #e65100; }
+  .hbtn:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+
+  /* COLLAPSE TOGGLE */
+  .collapse-toggle { cursor: pointer; background: none; border: none; color: white; font-size: 16px; line-height: 1; padding: 0 4px; opacity: 0.8; }
+  .collapse-toggle:hover { opacity: 1; }
+
+  .project-card-body { padding: 20px 18px; }
+  .project-card-body.collapsed { display: none; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 6px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 11px; font-weight: 600; color: #4a5c7a; text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-group label .req { color: #c62828; margin-left: 2px; }
+  .form-control { border: 1px solid #c8d6ec; background: white; color: #1a2236; padding: 8px 11px; border-radius: 5px; font-family: 'Inter', Arial; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
+  .form-control:focus { border-color: #1a5cc8; box-shadow: 0 0 0 3px rgba(26,92,200,0.1); }
+  .form-control:disabled { background: #f0f4fb; color: #6b7a99; cursor: not-allowed; }
+  .form-control::placeholder { color: #b0bcce; }
+  select.form-control { cursor: pointer; }
+  .ticket-id-box { background: #eaf0fb; border: 1px solid #b8ccea; color: #1a5cc8; padding: 8px 11px; border-radius: 5px; font-size: 13px; font-weight: 700; }
+
+  .divider { height: 1px; background: #dde6f5; margin: 16px 0; }
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #1a5cc8; margin-bottom: 10px; }
+
+  /* ERD TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: #e8f0fb; }
+  th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #1a5cc8; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #c0d0ea; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid #eef2f9; transition: background 0.1s; }
+  tbody tr:hover { background: #f6f9ff; }
+  td { padding: 9px 12px; color: #2c3a55; vertical-align: middle; }
+  td input, td select { border: 1px solid #c8d6ec; background: white; color: #1a2236; padding: 6px 9px; border-radius: 4px; font-family: 'Inter', Arial; font-size: 12px; width: 100%; outline: none; transition: border-color 0.15s; }
+  td input:focus, td select:focus { border-color: #1a5cc8; box-shadow: 0 0 0 2px rgba(26,92,200,0.1); }
+  td input:disabled, td select:disabled { background: #f0f4fb; color: #8a9ab5; cursor: not-allowed; }
+
+  .add-erd-btn { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; padding: 8px; margin-top: 8px; background: white; border: 1.5px dashed #96b4e0; border-radius: 5px; color: #1a5cc8; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; font-family: 'Inter', Arial; }
+  .add-erd-btn:hover { background: #f0f6ff; }
+
+  /* CHIPS */
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .chip::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip-ns        { background:#f0f2f5; color:#6b7a99; }
+  .chip-queued    { background:#fff3e0; color:#e65100; }
+  .chip-wip       { background:#e3efff; color:#1a5cc8; }
+  .chip-hold      { background:#fffde7; color:#f57f17; }
+  .chip-conflict  { background:#fdecea; color:#c62828; }
+  .chip-completed { background:#e8f5e9; color:#2e7d32; }
+  .chip-high      { background:#fdecea; color:#c62828; }
+  .chip-medium    { background:#fff3e0; color:#e65100; }
+  .chip-low       { background:#e8f5e9; color:#2e7d32; }
+
+  /* STATUS ROW COLORS */
+  tr.row-conflict  td { background: #fff5f5; }
+  tr.row-completed td { background: #f5fff7; }
+  tr.row-queued    td { background: #fffbf0; }
+  tr.row-wip       td { background: #f5f9ff; }
+  tr.row-hold      td { background: #fffef0; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 15px; border-radius: 5px; font-family: 'Inter', Arial; font-size: 12px; font-weight: 600; cursor: pointer; border: none; outline: none; transition: filter 0.15s, transform 0.1s; }
+  .btn:hover { filter: brightness(0.92); }
+  .btn:active { transform: scale(0.98); }
+  .btn-blue   { background: #1a5cc8; color: white; }
+  .btn-green  { background: #2e7d32; color: white; }
+  .btn-red    { background: #c62828; color: white; }
+  .btn-outline{ background: white; color: #1a5cc8; border: 1px solid #1a5cc8; }
+  .btn-gray   { background: #eef2f9; color: #4a5c7a; border: 1px solid #c8d6ec; }
+  .btn-sm     { padding: 5px 10px; font-size: 11px; }
+
+  /* FOOTER BTN ROW */
+  .card-footer { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid #eef2f9; }
+
+  /* LOCK BANNER */
+  .lock-banner { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; padding: 8px 13px; border-radius: 5px; font-size: 12px; font-weight: 500; margin-bottom: 12px; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 32px; color: #8a9ab5; font-size: 13px; }
+  .empty-projects { text-align: center; padding: 60px 20px; color: #8a9ab5; }
+  .empty-projects .icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-projects p { font-size: 14px; margin-bottom: 6px; color: #5a6a85; }
+  .empty-projects small { font-size: 12px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1a2236; color: white; padding: 12px 18px; border-radius: 6px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); z-index: 999; transform: translateY(12px); opacity: 0; transition: all 0.25s; max-width: 300px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 4px solid #2e7d32; }
+  .toast.error   { border-left: 4px solid #c62828; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,30,60,0.45); z-index: 500; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 8px; padding: 28px; width: 420px; max-width: 92vw; box-shadow: 0 12px 40px rgba(0,0,0,0.18); }
+  .modal h3 { font-size: 16px; font-weight: 700; color: #1a2236; margin-bottom: 8px; }
+  .modal p  { font-size: 13px; color: #5a6a85; margin-bottom: 18px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 9px; justify-content: flex-end; }
+
+  .msg-cell { font-size: 11px; color: #6b7a99; max-width: 200px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">ERD Routing Management System</span>
+  <div class="topbar-right">
+    <span class="topbar-role">Subsystem Engineer</span>
+    <a href="erd_management.html" class="topbar-link">Routing Engineer Portal →</a>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab(this,'projects')">My Projects <span class="badge" id="projBadge">0</span></div>
+  <div class="tab" onclick="switchTab(this,'requests')">All Requests <span class="badge" id="reqBadge">0</span></div>
+</div>
+
+<div class="page">
+
+  <!-- MY PROJECTS TAB -->
+  <div class="tab-panel active" id="tab-projects">
+
+    <div class="action-bar">
+      <div class="action-bar-left">
+        <b id="projCountLabel">0 projects</b> — create and manage your ERD routing requests
+      </div>
+      <button class="btn btn-blue" onclick="createNewProject()">+ New Project</button>
+    </div>
+
+    <div id="projectsList">
+      <div class="empty-projects">
+        <div class="icon">📋</div>
+        <p>No projects yet</p>
+        <small>Click <b>+ New Project</b> to get started</small>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ALL REQUESTS TAB -->
+  <div class="tab-panel" id="tab-requests">
+    <div style="background:white;border:1px solid #dde6f5;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+      <div style="background:#1a5cc8;color:white;padding:11px 18px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">All Submitted Requests</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Ticket No.</th><th>Project No.</th><th>ERD Part No.</th>
+            <th>ERD Name</th><th>Target Date</th><th>Priority</th>
+            <th>Status</th><th>Message</th>
+          </tr></thead>
+          <tbody id="requestsBody">
+            <tr><td colspan="8" class="empty">No submitted requests yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Delete Project Confirm Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Delete Project</h3>
+    <p>Are you sure you want to delete this project? This action cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="btn btn-gray" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-red" onclick="confirmDelete()">Delete Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Submit Confirm Modal -->
+<div class="modal-overlay" id="submitModal">
+  <div class="modal">
+    <h3>Confirm Submission</h3>
+    <p>Once submitted, all project details and ERD data will be permanently locked and cannot be edited or deleted. Are you sure?</p>
+    <div class="modal-btns">
+      <button class="btn btn-gray" onclick="closeModal('submitModal')">Cancel</button>
+      <button class="btn btn-green" onclick="confirmSubmit()">✓ Confirm & Submit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let projects = [];
+let ticketCounter = 1;
+let pendingDeleteId = null;
+let pendingSubmitId = null;
+
+// ── INIT ──
+window.onload = function() {
+  ticketCounter = parseInt(localStorage.getItem('erd_ticket_counter') || '1');
+  let saved = localStorage.getItem('sub_projects');
+  if (saved) projects = JSON.parse(saved);
+  renderAll();
+  setInterval(refreshRequests, 3000);
+};
+
+function save() {
+  localStorage.setItem('sub_projects', JSON.stringify(projects));
+}
+
+// ── TABS ──
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'requests') refreshRequests();
+}
+
+// ── CREATE NEW PROJECT ──
+function createNewProject() {
+  let ticket = 'TKT-' + String(ticketCounter).padStart(5, '0');
+  let proj = {
+    id: Date.now(),
+    ticketNo: ticket,
+    projNum: '', projEng: '', masterModel: '',
+    vehicleType: 'On Road', platform: 'Slingshot',
+    erdRows: [],
+    status: 'draft',
+    collapsed: false
+  };
+  projects.unshift(proj);
+  save();
+  renderAll();
+  showToast('New project created. Fill in details and save.', 'success');
+}
+
+// ── RENDER ALL ──
+function renderAll() {
+  document.getElementById('projBadge').textContent = projects.length;
+  document.getElementById('projCountLabel').textContent = projects.length + ' project' + (projects.length !== 1 ? 's' : '');
+
+  let container = document.getElementById('projectsList');
+
+  if (!projects.length) {
+    container.innerHTML = `<div class="empty-projects"><div class="icon">📋</div><p>No projects yet</p><small>Click <b>+ New Project</b> to get started</small></div>`;
+    return;
+  }
+
+  container.innerHTML = projects.map(p => buildProjectCard(p)).join('');
+}
+
+function buildProjectCard(p) {
+  let isSubmitted = p.status === 'submitted';
+  let headerClass = isSubmitted ? 'submitted' : 'draft';
+  let statusBadge = isSubmitted
+    ? '<span class="project-status-badge badge-submitted">✓ Submitted</span>'
+    : '<span class="project-status-badge badge-draft">Draft</span>';
+
+  let projLabel = p.projNum ? `Project: ${p.projNum}` : 'New Project';
+
+  // Header action buttons
+  let headerBtns = '';
+  if (!isSubmitted) {
+    headerBtns = `
+      <button class="hbtn hbtn-white" onclick="saveProject(${p.id})">💾 Save</button>
+      <button class="hbtn hbtn-white" onclick="openSubmitModal(${p.id})">Submit →</button>
+      <button class="hbtn hbtn-red"   onclick="openDeleteModal(${p.id})">🗑 Delete</button>
+    `;
+  } else {
+    // ── MORE INFO BUTTON for submitted tickets ──
+    headerBtns = `
+      <button class="hbtn hbtn-info" onclick="openInERD(${p.id})">🔗 More Info</button>
+    `;
+  }
+
+  let collapseIcon = p.collapsed ? '▼' : '▲';
+  let bodyClass = p.collapsed ? 'project-card-body collapsed' : 'project-card-body';
+
+  // Form fields
+  let formFields = `
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Ticket Request No.</label>
+        <div class="ticket-id-box">${p.ticketNo}</div>
+      </div>
+      <div class="form-group">
+        <label>Project Number <span class="req">*</span></label>
+        <input class="form-control" value="${esc(p.projNum)}" placeholder="e.g. PRJ-2026-001"
+          oninput="updateField(${p.id},'projNum',this.value)" ${isSubmitted ? 'disabled' : ''}>
+      </div>
+      <div class="form-group">
+        <label>Project Engineer <span class="req">*</span></label>
+        <input class="form-control" value="${esc(p.projEng)}" placeholder="Engineer name"
+          oninput="updateField(${p.id},'projEng',this.value)" ${isSubmitted ? 'disabled' : ''}>
+      </div>
+      <div class="form-group">
+        <label>Master Model Number <span class="req">*</span></label>
+        <input class="form-control" value="${esc(p.masterModel)}" placeholder="e.g. MM-X1"
+          oninput="updateField(${p.id},'masterModel',this.value)" ${isSubmitted ? 'disabled' : ''}>
+      </div>
+      <div class="form-group">
+        <label>Vehicle Type</label>
+        <select class="form-control" onchange="updateField(${p.id},'vehicleType',this.value)" ${isSubmitted ? 'disabled' : ''}>
+          ${['On Road','Off Road','Racing','Commercial','Electric'].map(v=>`<option ${p.vehicleType===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Platform</label>
+        <select class="form-control" onchange="updateField(${p.id},'platform',this.value)" ${isSubmitted ? 'disabled' : ''}>
+          ${['Slingshot','Alpha','Bravo','Titan','Nova'].map(v=>`<option ${p.platform===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  `;
+
+  // ERD table
+  let erdRows = p.erdRows.map((row, i) => `
+    <tr>
+      <td style="color:#1a5cc8;font-weight:700;text-align:center;width:50px">${i+1}</td>
+      <td>${row.saved
+        ? row.partNum || '—'
+        : `<input value="${esc(row.partNum)}" placeholder="ERD Part No." oninput="updateErd(${p.id},${i},'partNum',this.value)" ${isSubmitted?'disabled':''}>`}</td>
+      <td>${row.saved
+        ? row.name || '—'
+        : `<input value="${esc(row.name)}" placeholder="ERD Name" oninput="updateErd(${p.id},${i},'name',this.value)" ${isSubmitted?'disabled':''}>`}</td>
+      <td>${row.saved
+        ? row.date || '—'
+        : `<input type="date" value="${row.date||''}" onchange="updateErd(${p.id},${i},'date',this.value)" ${isSubmitted?'disabled':''}>`}</td>
+      <td style="width:110px">${row.saved
+        ? `<span class="chip chip-${row.priority.toLowerCase()}">${row.priority}</span>`
+        : `<select onchange="updateErd(${p.id},${i},'priority',this.value)" ${isSubmitted?'disabled':''}>
+            <option ${row.priority==='High'?'selected':''}>High</option>
+            <option ${row.priority==='Medium'?'selected':''}>Medium</option>
+            <option ${row.priority==='Low'?'selected':''}>Low</option>
+          </select>`}</td>
+      <td style="text-align:center;width:150px">
+        <div style="display:flex;gap:5px;justify-content:center">
+          ${isSubmitted
+            ? '<span style="color:#8a9ab5;font-size:11px">Locked</span>'
+            : !row.saved
+              ? `<button class="btn btn-green btn-sm" onclick="saveErdRow(${p.id},${i})">Save</button>
+                 <button class="btn btn-red btn-sm" onclick="deleteErdRow(${p.id},${i})">Delete</button>`
+              : `<button class="btn btn-outline btn-sm" onclick="editErdRow(${p.id},${i})">Edit</button>
+                 <button class="btn btn-red btn-sm" onclick="deleteErdRow(${p.id},${i})">Delete</button>`}
+        </div>
+      </td>
+    </tr>`).join('');
+
+  let lockBanner = isSubmitted
+    ? `<div class="lock-banner">✓ Project submitted — all fields are locked and sent to routing engineer. Click <b>More Info</b> above to open the ERD Management System.</div>`
+    : '';
+
+  return `
+    <div class="project-card" id="pcard-${p.id}">
+      <div class="project-card-header ${headerClass}">
+        <div class="project-header-left">
+          <span class="project-header-title">${projLabel}</span>
+          <span class="project-header-ticket">${p.ticketNo}</span>
+          ${statusBadge}
+        </div>
+        <div class="project-header-actions">
+          ${headerBtns}
+          <button class="collapse-toggle" onclick="toggleCollapse(${p.id})">${collapseIcon}</button>
+        </div>
+      </div>
+      <div class="${bodyClass}" id="pbody-${p.id}">
+        ${lockBanner}
+        ${formFields}
+        <div class="divider"></div>
+        <div class="section-label">ERD Parts</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Sl. No.</th><th>ERD Part Number</th><th>ERD Name</th>
+              <th>Desired Completion Date</th><th>Priority</th>
+              <th style="text-align:center">Actions</th>
+            </tr></thead>
+            <tbody>${erdRows || `<tr><td colspan="6" class="empty">No ERD parts added yet.</td></tr>`}</tbody>
+          </table>
+        </div>
+        ${!isSubmitted ? `<button class="add-erd-btn" onclick="addErdRow(${p.id})">+ &nbsp;Add ERD Part</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ── MORE INFO — open ERD Management with this ticket's data pre-loaded ──
+function openInERD(id) {
+  let p = getProj(id);
+  if (!p) return;
+
+  // Build URL params from project data
+  const params = new URLSearchParams({
+    ticketNo:    p.ticketNo,
+    projNum:     p.projNum,
+    projEng:     p.projEng,
+    masterModel: p.masterModel,
+    vehicleType: p.vehicleType,
+    platform:    p.platform,
+    partCount:   p.erdRows.length
+  });
+
+  // Encode ERD rows as JSON in param
+  params.set('erdRows', JSON.stringify(p.erdRows.map(r => ({
+    name: r.name,
+    part: r.partNum,
+    date: r.date
+  }))));
+
+  // Open ERD management page with params
+  // Change 'erd_management.html' to match your actual ERD file name
+  window.open('erd_management.html?' + params.toString(), '_blank');
+}
+
+// ── COLLAPSE ──
+function toggleCollapse(id) {
+  let p = getProj(id);
+  p.collapsed = !p.collapsed;
+  save();
+  renderAll();
+}
+
+// ── FIELD UPDATES ──
+function updateField(id, field, val) {
+  let p = getProj(id);
+  p[field] = val;
+  if (field === 'projNum') {
+    let el = document.querySelector(`#pcard-${id} .project-header-title`);
+    if (el) el.textContent = val ? `Project: ${val}` : 'New Project';
+  }
+}
+
+function updateErd(id, i, field, val) {
+  let p = getProj(id);
+  p.erdRows[i][field] = val;
+}
+
+// ── ERD ROW ACTIONS ──
+function addErdRow(id) {
+  let p = getProj(id);
+  p.erdRows.push({ partNum:'', name:'', date:'', priority:'Medium', saved:false });
+  save(); renderAll();
+}
+
+function saveErdRow(id, i) {
+  let p = getProj(id);
+  let row = p.erdRows[i];
+  if (!row.partNum || !row.name || !row.date) {
+    showToast('Fill all ERD fields before saving.', 'error'); return;
+  }
+  row.saved = true;
+  save(); renderAll();
+  showToast('ERD row saved.', 'success');
+}
+
+function editErdRow(id, i) {
+  let p = getProj(id);
+  p.erdRows[i].saved = false;
+  save(); renderAll();
+}
+
+function deleteErdRow(id, i) {
+  let p = getProj(id);
+  p.erdRows.splice(i, 1);
+  save(); renderAll();
+}
+
+// ── SAVE PROJECT ──
+function saveProject(id) {
+  let p = getProj(id);
+  if (!p.projNum || !p.projEng || !p.masterModel) {
+    showToast('Fill Project Number, Engineer and Master Model to save.', 'error'); return;
+  }
+  save();
+  showToast('Project draft saved.', 'success');
+  renderAll();
+}
+
+// ── DELETE PROJECT ──
+function openDeleteModal(id) {
+  pendingDeleteId = id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function confirmDelete() {
+  closeModal('deleteModal');
+  projects = projects.filter(p => p.id !== pendingDeleteId);
+  pendingDeleteId = null;
+  save(); renderAll();
+  showToast('Project deleted.', 'success');
+}
+
+// ── SUBMIT PROJECT ──
+function openSubmitModal(id) {
+  let p = getProj(id);
+  if (!p.projNum || !p.projEng || !p.masterModel) {
+    showToast('Fill Project Number, Engineer and Master Model before submitting.', 'error'); return;
+  }
+  if (!p.erdRows.length) {
+    showToast('Add at least one ERD part before submitting.', 'error'); return;
+  }
+  if (p.erdRows.some(r => !r.saved)) {
+    showToast('Save all ERD rows before submitting.', 'error'); return;
+  }
+  pendingSubmitId = id;
+  document.getElementById('submitModal').classList.add('open');
+}
+
+function confirmSubmit() {
+  closeModal('submitModal');
+  let p = getProj(pendingSubmitId);
+  p.status = 'submitted';
+
+  // Push to routing requests
+  let all = JSON.parse(localStorage.getItem('erd_requests') || '[]');
+  p.erdRows.forEach(row => {
+    all.push({
+      ticketNo: p.ticketNo,
+      projNum: p.projNum,
+      projEng: p.projEng,
+      masterModel: p.masterModel,
+      vehicleType: p.vehicleType,
+      platform: p.platform,
+      partNum: row.partNum,
+      erdName: row.name,
+      date: row.date,
+      priority: row.priority,
+      status: 'NOT_STARTED',
+      message: 'Request raised — awaiting routing engineer',
+      routingEngineer: '',
+      holdReason: ''
+    });
+  });
+  localStorage.setItem('erd_requests', JSON.stringify(all));
+
+  // Increment ticket counter for next project
+  ticketCounter++;
+  localStorage.setItem('erd_ticket_counter', String(ticketCounter));
+
+  pendingSubmitId = null;
+  save(); renderAll(); refreshRequests();
+  showToast('Project submitted! Click "More Info" to open in ERD Management.', 'success');
+}
+
+// ── REQUESTS TABLE ──
+function refreshRequests() {
+  let all = JSON.parse(localStorage.getItem('erd_requests') || '[]');
+  document.getElementById('reqBadge').textContent = all.length;
+  let tbody = document.getElementById('requestsBody');
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No submitted requests yet.</td></tr>';
+    return;
+  }
+  const chipMap = {
+    NOT_STARTED: ['chip-ns','Not Started'],
+    QUEUED:      ['chip-queued','Queued'],
+    WIP:         ['chip-wip','In Progress'],
+    ON_HOLD:     ['chip-hold','On Hold'],
+    CONFLICT:    ['chip-conflict','Conflict'],
+    COMPLETED:   ['chip-completed','Completed'],
+  };
+  const rowMap = { QUEUED:'row-queued', WIP:'row-wip', ON_HOLD:'row-hold', CONFLICT:'row-conflict', COMPLETED:'row-completed' };
+  tbody.innerHTML = all.map(r => {
+    let [chip, label] = chipMap[r.status] || ['chip-ns', r.status];
+    return `<tr class="${rowMap[r.status]||''}">
+      <td style="color:#1a5cc8;font-weight:700">${r.ticketNo}</td>
+      <td>${r.projNum}</td>
+      <td style="color:#1a5cc8">${r.partNum}</td>
+      <td>${r.erdName}</td>
+      <td>${r.date}</td>
+      <td><span class="chip chip-${r.priority.toLowerCase()}">${r.priority}</span></td>
+      <td><span class="chip ${chip}">${label}</span></td>
+      <td class="msg-cell">${r.message||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── HELPERS ──
+function getProj(id) { return projects.find(p => p.id === id); }
+function esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showToast(msg, type='success') {
+  let t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
